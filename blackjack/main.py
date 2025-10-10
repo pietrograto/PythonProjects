@@ -5,14 +5,25 @@ import random
 
 
 def deal_card():
-    """ return a random card from the deck"""
+    """Return a random card from the deck.
+    
+    Returns:
+        int: Card value (11 for Ace, 10 for face cards, pip value for others)
+    """
     cards = [11,2,3,4,5,6,7,8,9,10,10,10,10]
     card = random.choice(cards)
     # print({card})
     return card
 
 def calculate_score(cards):
-    """ Take a list of cards and return the score calculated from the cards"""
+    """Calculate blackjack score from a list of cards.
+    
+    Args:
+        cards (list): List of card values
+        
+    Returns:
+        int: Calculated score (0 for blackjack, actual sum otherwise)
+    """
     
     if sum(cards)== 21 and len(cards) == 2:
         return 0 
@@ -46,6 +57,10 @@ def compare(user_score, computer_score):
 
 
 def play_game():
+    """Main game loop for blackjack.
+    
+    Handles card dealing, user input, and game logic until completion.
+    """
 
     print(logo)
     user_cards = []

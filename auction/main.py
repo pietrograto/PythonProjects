@@ -6,6 +6,11 @@ bids = {}
 bidding_finished = False
 
 def find_highest_bidder(bidding_record):
+  """Find and announce the highest bidder.
+  
+  Args:
+      bidding_record (dict): Dictionary of bidder names and bid amounts
+  """
   highest_bid = 0
   winner = ""
   # bidding_record = {"Angela": 123, "James": 321}

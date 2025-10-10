@@ -44,11 +44,11 @@ Advanced calculator with continuous operations and memory.
 - **Skills**: Functions, dictionaries, recursion, input validation
 - **Run**: `python calculator/main.py`
 
-#### **Caesar Cipher** (`casear_cipher/`)
+#### **Caesar Cipher** (`caesar_cipher/`)
 Text encryption/decryption tool using Caesar cipher algorithm.
 - **Features**: Encode/decode modes, non-alphabetic character preservation
 - **Skills**: String manipulation, modular arithmetic, cryptography basics
-- **Run**: `python casear_cipher/main.py`
+- **Run**: `python caesar_cipher/main.py`
 
 #### **Loan Overpayment Calculator** (`kalkulator_nadpłaty/`)
 Financial tool for calculating mortgage overpayment benefits (Polish interface).

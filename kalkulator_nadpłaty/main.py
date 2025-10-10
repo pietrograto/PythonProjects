@@ -31,6 +31,16 @@ from datetime import datetime, timedelta
 import calendar
 
 def oblicz_raty(saldo, oprocentowanie, okres):
+    """Calculate monthly loan payment.
+    
+    Args:
+        saldo (float): Loan balance
+        oprocentowanie (float): Annual interest rate
+        okres (int): Loan term in months
+        
+    Returns:
+        float: Monthly payment amount
+    """
     r = oprocentowanie / 12 / 100
     rata = saldo * (r * (1 + r) ** okres) / ((1 + r) ** okres - 1)
     return rata
@@ -53,6 +63,7 @@ def oblicz_date_splaty(kwota_kredytu, oprocentowanie, okres_kredytowania, nadpla
     return data_splaty, miesieczna_rata, saldo_do_splaty
 
 def podaj_informacje(kwota_kredytu, oprocentowanie, okres_kredytowania, ostatnia_data):
+    """Display current loan information and payment breakdown."""
     saldo_do_splaty = kwota_kredytu
     pozostalo_rat = okres_kredytowania
     rata_kapitalowa = 0
