@@ -1,13 +1,25 @@
-from tkinter import *
+import customtkinter as ctk
+from tkinter import Canvas, PhotoImage
 from tkinter import messagebox
 import pandas
 import random
 from datetime import datetime, timedelta
 
-BACKGROUND_COLOR = "#B1DDC6"
+# Set CustomTkinter appearance
+ctk.set_appearance_mode("light")  # Dark theme for modern look
+ctk.set_default_color_theme("blue")  # "green", "dark-blue"
+
+BACKGROUND_COLOR = "#2b2b2b"
+# Menu color constants
+MENU_BG = '#12c4c0'
+MENU_HOVER = '#0f9d9a'
+MENU_TEXT = '#262626'
+
 current_card = {}
 to_learn = {}
 is_flipped = False
+current_difficulty_filter = None  # Tracks selected difficulty filter
+menu_visible = False  # Tracks hamburger menu state
 
 
 def load_words_with_spaced_repetition():
@@ -20,22 +32,21 @@ def load_words_with_spaced_repetition():
         saved_data = pandas.read_csv("data/spaced_repetition.csv")
         to_learn = saved_data.to_dict(orient="records")
 
-    except FileNotFoundError:
+    except (FileNotFoundError, pandas.errors.EmptyDataError):
         # Create new spaced repetition data from original words
         original_data = pandas.read_csv("data/french_words.csv")
         to_learn = []
 
         for word in original_data.to_dict(orient="records"):
             word.update({
-                'repetitions': 0,
-                'interval': 1,
-                'ease_factor': 2.5,
-                'due_date': today,
-                'last_reviewed': today
+                'repetitions': 0,  # How many times reviewed
+                'interval': 1,  # Days until next review
+                'ease_factor': 2.5,  # How "easy" the word is (2.5 default)
+                'due_date': today,  # Timing data
+                'last_reviewed': today,  # Timing data
             })
             to_learn.append(word)
 
-        # Save initial data
         save_progress()
 
 
@@ -49,8 +60,23 @@ def get_due_words():
     """Get words that are due for review today."""
     today = datetime.now().strftime("%Y-%m-%d")
     due_words = [word for word in to_learn if word['due_date'] <= today]
+
+    if current_difficulty_filter:
+        due_words = [word for word in due_words if word.get('difficulty', 1)
+                     == current_difficulty_filter]
+
     # Show 5 random words if no words are due
     return due_words if due_words else to_learn[:5]
+
+
+def set_difficulty_filter(difficulty):
+    """Set the difficulty filter for words to review."""
+    global current_difficulty_filter
+    current_difficulty_filter = difficulty
+
+    close_menu()
+
+    next_card()
 
 
 def get_next_word():
@@ -70,8 +96,19 @@ def next_card():
 
     canvas.itemconfig(card_title, text="French", fill="black")
     canvas.itemconfig(card_word, text=current_card["French"], fill="black")
+
+    # Select difficulty dots
+    difficulty = current_card.get('difficulty', 1)
+    if difficulty not in [1, 2, 3]:
+        difficulty = 1
+
     canvas.itemconfig(canvas_image, image=card_front_img)
+    draw_difficulty_dots(difficulty)
+
     flip_timer = window.after(3000, func=toggle_card)
+
+    difficulty_text = f"Level: {difficulty}"
+    canvas.itemconfig(card_difficulty, text=difficulty_text)
 
 
 def toggle_card():
@@ -82,13 +119,12 @@ def toggle_card():
         window.after_cancel(flip_timer)
 
     if is_flipped:
-        # Show fron card
+        # Show front card
         canvas.itemconfig(canvas_image, image=card_front_img)
         canvas.itemconfig(card_title, text="French", fill="black")
         canvas.itemconfig(card_word, text=current_card["French"], fill="black")
         is_flipped = False
     else:
-
         # Show back card
         canvas.itemconfig(canvas_image, image=card_back_img)
         canvas.itemconfig(card_title, text="English", fill="white")
@@ -141,9 +177,87 @@ def update_word_stats(word, is_correct):
     word['last_reviewed'] = today
 
 
-window = Tk()
+def draw_difficulty_dots(difficulty):
+    """Draw dots to represent difficulty level."""
+    global difficulty_dots
+
+    # Clear existing dots
+    for dot in difficulty_dots:
+        canvas.delete(dot)
+    difficulty_dots = []
+
+    # Draw dots based on difficulty
+    dot_size = 8
+    start_x = 380
+    y_pos = 420
+
+    for i in range(difficulty):
+        x_pos = start_x + (i * 20)  # Space dots 20px apart
+        dot = canvas.create_oval(x_pos - dot_size, y_pos - dot_size,
+                                 x_pos + dot_size, y_pos + dot_size,
+                                 fill="#ff6b6b", outline="#d63031", width=2)
+        difficulty_dots.append(dot)
+
+
+def close_menu():
+    """Close the hamburger menu if it's open."""
+    global menu_visible, menu_frame
+    if menu_visible:
+        menu_frame.destroy()
+        menu_visible = False
+
+
+def toggle_menu():
+    global menu_visible, menu_frame
+
+    if menu_visible:
+        close_menu()
+    else:
+        # Create and show the frame with cyan background
+        menu_frame = ctk.CTkFrame(
+            window, width=200, height=300, fg_color=MENU_BG)
+        menu_frame.grid(row=0, column=0, padx=0, pady=0, sticky="nw")
+
+        def create_menu_button(x, y, text, cmd):
+            btn = ctk.CTkButton(menu_frame,
+                                text=text,
+                                width=180,
+                                height=35,
+                                fg_color=MENU_BG,
+                                hover_color=MENU_HOVER,
+                                text_color=MENU_TEXT,
+                                command=cmd)
+            btn.place(x=10, y=y)
+
+        # Create menu buttons
+        create_menu_button(0, 80, 'Level 1', lambda: set_difficulty_filter(1))
+        create_menu_button(0, 117, 'Level 2', lambda: set_difficulty_filter(2))
+        create_menu_button(0, 154, 'Level 3', lambda: set_difficulty_filter(3))
+        create_menu_button(0, 191, 'All Levels',
+                           lambda: set_difficulty_filter(None))
+
+        # Close button
+        def close_btn():
+            menu_frame.destroy()
+            global menu_visible
+            menu_visible = False
+
+        ctk.CTkButton(menu_frame,
+                      text="✕",
+                      width=30,
+                      height=30,
+                      fg_color=MENU_BG,
+                      hover_color=MENU_HOVER,
+                      text_color=MENU_TEXT,
+                      command=close_btn).place(x=5, y=10)
+
+        menu_visible = True
+
+
+window = ctk.CTk()
 window.title("Flashy")
-window.config(padx=50, pady=50, bg=BACKGROUND_COLOR)
+window.geometry("900x700")
+window.configure(fg_color=BACKGROUND_COLOR)
 
 # Choose learning mode with dialog
 load_words_with_spaced_repetition()
@@ -153,24 +267,50 @@ canvas = Canvas(width=800, height=526)
 
 card_front_img = PhotoImage(file="images/card_front.png")
 card_back_img = PhotoImage(file="images/card_back.png")
+
+# Store difficulty dot IDs for updating
+difficulty_dots = []
+
 canvas_image = canvas.create_image(400, 263, image=card_front_img)
 card_title = canvas.create_text(400, 150, text="Title", font=(
     "Arial", 40, "italic"), fill="black")
 card_word = canvas.create_text(400, 263, text="word", font=(
     "Arial", 60, "bold"), fill="black")
+
+card_difficulty = canvas.create_text(
+    400, 350, text="", font=("Arial", 20), fill="gray")
+
+# Difficulty dots will be created dynamically
 canvas.config(bg=BACKGROUND_COLOR, highlightthickness=0)
-canvas.grid(row=0, column=0, columnspan=2)
-canvas.bind("<Button-1>", lambda event: toggle_card())
+canvas.place(x=50, y=50)
 
-cross_image = PhotoImage(file="images/wrong.png")
-unknown_button = Button(
-    image=cross_image, highlightthickness=0, command=is_unknown)
-unknown_button.grid(row=1, column=0)
 
-check_image = PhotoImage(file="images/right.png")
-known_button = Button(
-    image=check_image, highlightthickness=0, command=is_known)
-known_button.grid(row=1, column=1)
+def on_canvas_click(event):
+    close_menu()
+    toggle_card()
 
-next_card()
-window.mainloop()
+
+canvas.bind("<Button-1>", on_canvas_click)
+
+# Create buttons properly
+unknown_button = ctk.CTkButton(window, text="❌ Unknown",
+                               fg_color="#ff4444", hover_color="#cc3333",
+                               width=120, height=40, command=is_unknown)
+unknown_button.place(x=300, y=600)
+
+known_button = ctk.CTkButton(window, text="✅ Known",
+                             fg_color="#44ff44", hover_color="#33cc33",
+                             width=120, height=40, command=is_known)
+known_button.place(x=480, y=600)
+
+hamburger_button = ctk.CTkButton(window, text="☰", width=40, height=40,
+                                 fg_color=BACKGROUND_COLOR, hover_color=MENU_HOVER,
+                                 command=toggle_menu)
+hamburger_button.place(x=10, y=10)
+
+# Start the application
+try:
+    next_card()
+    window.mainloop()
+except Exception as e:
+    print(f"Application error: {e}")
